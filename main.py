@@ -1,13 +1,5 @@
 #### @pipko
 
-from getpass import getuser
-from duneanalytics import DuneAnalytics
-
-# import gspread
-# import df2gspread as d2g
-
-
-
 #------------------------------------------------------------------------
 
 # standard modules
@@ -16,14 +8,18 @@ from pathlib import Path
 import os, sys
 #sys.path.append((os.path.realpath(__file__)))#
 
+# pip modules
 import pandas as pd
+from duneanalytics import DuneAnalytics
+from oauth2client.service_account import ServiceAccountCredentials
+import gspread
+from df2gspread import df2gspread as d2g
 
 # custom modules
 from utils import ROOT_DIR
 
 
 #------------------------------------------------------------------------
-
 
 
 def getConfigs():
@@ -43,8 +39,13 @@ def getPassword():
     p = configs['duneanalytics']['password']
     return p
 
+def getSpreadsheetKey():
+    configs = getConfigs()
+    j = configs['googlesheets']['spreadsheetkey']
+    return j
 
-def getQueryInDataFrame():
+
+def uploadQueryToGsheets(query_id, query_name = 'Unknown'):
     # initialize client
     user = getUsername()
     pw = getPassword()
@@ -67,7 +68,7 @@ def getQueryInDataFrame():
     # https://duneanalytics.com/queries/3705/7192 => 3705
     # https://duneanalytics.com/queries/3751/7276 => 3751
 
-    result_id = dune.query_result_id(query_id=17338)
+    result_id = dune.query_result_id(query_id=query_id)
 
     # fetch query result & parse
     x = dune.query_result(result_id)
@@ -80,11 +81,24 @@ def getQueryInDataFrame():
         n+=1
     
     df = pd.DataFrame.from_dict(y, orient = 'index')
-    return df
+    df = df.convert_dtypes()
+
+    # upload 
+
+    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(Path(ROOT_DIR) / 'dune-to-gsheets.json', scope)
+    gc = gspread.authorize(credentials)    
+
+    spreadsheet_key = getSpreadsheetKey()
+    wks_name = str(query_id) + ' - ' + query_name
+
+    d2g.upload(df, spreadsheet_key, wks_name, credentials=credentials, row_names=True)
+
 
 if __name__ == '__main__':
-    df = getQueryInDataFrame()
-    print(df)
+    uploadQueryToGsheets(17338, 'Maker - Interest Monthly Revenues')
+
+
 
 
 
