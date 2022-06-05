@@ -48,6 +48,10 @@ def getQueryInDataFrame():
     # initialize client
     user = getUsername()
     pw = getPassword()
+
+    if user == 'username' or pw == 'password':
+        raise Exception("Username / password entry is invalid. Please update config.json")
+
     dune = DuneAnalytics(getUsername(), getPassword())
 
     # try to login
