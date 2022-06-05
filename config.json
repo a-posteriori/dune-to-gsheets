@@ -2,5 +2,10 @@
     "duneanalytics":{
         "username":"username",
         "password":"password"
-    }      
+    },
+    "googlesheets":
+    {
+       "spreadsheetkey": ""
+    }
+}
 }
